@@ -46,8 +46,13 @@ public class AppFrame extends javax.swing.JFrame {
         initComponents();
         studentList = new ArrayList<>();
         statList = new ArrayList<>();
-        tabmod = new DefaultTableModel(tabheads,0);
-        jTable1.setModel(tabmod);        
+        tabmod = new DefaultTableModel(tabheads,0){
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        jTable1.setModel(tabmod);
     }
 
     /**
@@ -324,7 +329,7 @@ public class AppFrame extends javax.swing.JFrame {
                     sb.append(Character.toUpperCase(arr[i].charAt(0)))
                     .append(arr[i].substring(1)).append(" ");
                 }
-                return sb.toString();
+                return sb.toString().trim();
             }
     }
     
@@ -387,7 +392,7 @@ public class AppFrame extends javax.swing.JFrame {
     
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         FileDialog fd = new FileDialog(this, "Choose an image", FileDialog.LOAD);
-        fd.setDirectory(System.getProperty("user.dir")+"\\img");
+        fd.setDirectory(System.getProperty("user.home"));
         fd.setVisible(true);
         String filename = fd.getFile();
         String path =fd.getDirectory();
@@ -487,6 +492,7 @@ public class AppFrame extends javax.swing.JFrame {
         if (isStat == true){
             displayTable(studentList);
             isStat = false;
+            return;
         }
         try{
             if (row < 0) throw new InputException("Row Unselect");
@@ -498,13 +504,20 @@ public class AppFrame extends javax.swing.JFrame {
         int dialogResult = JOptionPane.showConfirmDialog(this, "Delete this student?", "Delete Student", dialogButton);
         if(dialogResult == 0) {
             try{
-                delImg(studentList.get(row).getImgFileName());
+                if (studentList.size() != 1) {delImg(studentList.get(row).getImgFileName());}
             }catch(IOException e){
-                JOptionPane.showMessageDialog (null, "Fail to delete old image or old image does not exit, the program will still delete the entry in the file");
+                JOptionPane.showMessageDialog (null, "Fail to delete old image or old image does not exit, the program will still try to delete the entry in the file");
             }
-            tabmod.removeRow(row);
-            studentList.remove(row);
-            save();
+            try{
+                if (studentList.size() != 1){
+                tabmod.removeRow(row);
+                studentList.remove(row);
+                save();
+                }
+                else throw new InputException("Only entry in list");
+            }catch(InputException e){
+                JOptionPane.showMessageDialog (null, "Can't remove the only entry on the list, please create a new entry before you could delete this one");
+            }
             displayTable(studentList);
             row= -1;
         }
@@ -605,7 +618,7 @@ public class AppFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_jMenuItem1ActionPerformed
 
     
-    //Populate the fields with data from selected row in the table
+    //Populate the fields with data from selected row in the table and also choose which index in list to delete, edit, display image
     private void jTable1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jTable1MouseClicked
         clearField();
         row = jTable1.getSelectedRow();
@@ -619,7 +632,7 @@ public class AppFrame extends javax.swing.JFrame {
                 jComboBox1.setSelectedIndex(i);
             }
         }
-        
+        // Display image
         String filename="";
         try{
             if (isStat == true){
@@ -648,6 +661,8 @@ public class AppFrame extends javax.swing.JFrame {
             if (filename.equals("")) throw new InputException("No input");
             else listFile = filename;
             JOptionPane.showMessageDialog (null, "File will be saved on disk upon adding first entry");
+            studentList.clear();
+            tabmod.setRowCount(0);
         }catch(NullPointerException | InputException e){
             JOptionPane.showMessageDialog (null, "Please input a filename");
         }
